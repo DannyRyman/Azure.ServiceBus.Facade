@@ -21,7 +21,7 @@ namespace ProqualIT.Azure.ServiceBus.Facade
 
         public string Result()
         {
-            return $"[{this.propertyName}] = '{this.value}'";
+            return String.Format("[{0}] = '{1}'", this.propertyName, this.value);
         }
     }
 }

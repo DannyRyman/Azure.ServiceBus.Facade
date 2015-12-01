@@ -16,7 +16,9 @@ namespace TestHarness
             
             Subscriber subscriber = new Subscriber(topicName, connectionString);
 
-            subscriber.Subscribe<SampleEvent>("SampleEvents", message => Console.WriteLine($"received message with id \"{message.MessageId}\" and content \"{message.GetBody().Message}\""));
+            subscriber.Subscribe<SampleEvent>("SampleEvents", message => Console.WriteLine(
+                String.Format("received message with id \"{0}\" and content \"{1}\"", message.MessageId,
+                    message.GetBody().Message)));
 
             while (true)
             {
@@ -33,7 +35,7 @@ namespace TestHarness
 
         public class SampleEvent
         {
-            public string Message { get; }
+            public string Message { get; private set; }
 
             public SampleEvent(string message)
             {

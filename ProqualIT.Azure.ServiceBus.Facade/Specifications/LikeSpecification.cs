@@ -21,7 +21,7 @@ namespace ProqualIT.Azure.ServiceBus.Facade
 
         public string Result()
         {
-            return $"[{this.propertyName}] LIKE '%{this.value}%'";
+            return String.Format("[{0}] LIKE '%{1}%'", this.propertyName, this.value);
         }
     }
 }

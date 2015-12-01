@@ -1,4 +1,7 @@
 ﻿// ReSharper disable CheckNamespace
+
+using System;
+
 namespace ProqualIT.Azure.ServiceBus.Facade
 {
     public class AndSpecification : ISpecification
@@ -14,7 +17,7 @@ namespace ProqualIT.Azure.ServiceBus.Facade
 
         public string Result()
         {
-            return $"({this.leftSpecification.Result()} And {this.rightSpecification.Result()})";
+            return String.Format("({0} And {1})", this.leftSpecification.Result(), this.rightSpecification.Result());
         }
     }
 }
