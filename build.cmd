@@ -14,6 +14,8 @@ if "%nuget%" == "" (
 	set nuget=nuget
 )
 
+%nuget% restore
+
 %WINDIR%\Microsoft.NET\Framework\v4.0.30319\msbuild ProqualIT.Azure.ServiceBus.Facade.sln /p:Configuration="%config%" /m /v:M /fl /flp:LogFile=msbuild.log;Verbosity=diag /nr:false
 
 mkdir Build
