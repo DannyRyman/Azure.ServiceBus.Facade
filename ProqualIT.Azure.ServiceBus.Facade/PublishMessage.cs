@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace ProqualIT.Azure.ServiceBus.Facade
@@ -33,11 +34,12 @@ namespace ProqualIT.Azure.ServiceBus.Facade
         }
 
         public static PublishMessage Create(
-            string messageType,
+            Type type,
             Stream bodyRaw,
             string messageId,
             IDictionary<string, string> properties = null)
         {
+            var messageType = Reflect.GetTypeNameOfConcreteAndParentTypes(type);
             return new PublishMessage(messageType, bodyRaw, messageId, properties);
         }
     }
