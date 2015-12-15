@@ -18,6 +18,18 @@ namespace ProqualIT.Azure.ServiceBus.Facade
             this.namespaceManager = NamespaceManager.CreateFromConnectionString(connectionString);
         }
 
+        public SubscriptionClient CreateAndGetSubscription(string subscriptionName, ISpecification customFilter = null)
+        {
+            string subscriptionFullName = string.Concat(subscriptionName);
+
+            var baseFilter = CreateDeadLetterFilter(subscriptionFullName); 
+
+            // Join the custom and base filter if necessary
+            var filter = customFilter != null ? new AndSpecification(baseFilter, customFilter) : baseFilter;
+
+            return this.CreateAndGetSubscriptionInternal(subscriptionFullName, filter);
+        }
+
         public SubscriptionClient CreateAndGetSubscription(string subscriptionName, Type type, ISpecification customFilter = null)
         {
             string subscriptionFullName = string.Concat(subscriptionName, ".", type.Name);
