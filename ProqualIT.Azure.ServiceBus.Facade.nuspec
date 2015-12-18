@@ -14,6 +14,7 @@
     <copyright>Copyright &#x00A9; ProqualIT Ltd.  All rights reserved.</copyright>
     <tags>Azure ServiceBus Topic Publish Subscribe</tags>
 	<dependencies>      
+	  <dependency id="Microsoft.Tpl.Dataflow" version="4.5.24" />
 	  <dependency id="Microsoft.WindowsAzure.ConfigurationManager" version="1.7.0.0" />
 	  <dependency id="Newtonsoft.Json" version="7.0.1" />  
 	  <dependency id="WindowsAzure.ServiceBus" version="3.0.9" />
