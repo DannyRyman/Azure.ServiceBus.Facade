@@ -27,18 +27,22 @@ namespace ProqualIT.Azure.ServiceBus.Facade
         public void ProcessMessages<T>(
             SubscriptionClient subscriptionClient,
             Action<IEnumerable<T>> messagesReceived,
-            IEnumerable<BrokeredMessage> messages) where T : SubscriptionMessage
-        {
-            var brokeredMessages = messages as BrokeredMessage[] ?? messages.ToArray();
-
+            BrokeredMessage[] brokeredMessages) where T : SubscriptionMessage
+        {            
             if (brokeredMessages.Any())
             {
+                log.Info("Wrapping messages for consumption");
+
                 var wrappedMessages = brokeredMessages.Select(x => (T)Activator.CreateInstance(typeof(T), x));
                 var brokeredMessageWrappers = wrappedMessages as T[] ?? wrappedMessages.ToArray();
 
                 try
                 {
+                    log.Info("Calling message consumer");
+
                     messagesReceived.Invoke(brokeredMessageWrappers);
+
+                    log.Info("Checking completion status");
 
                     var completionTokens = brokeredMessageWrappers.Where(x => !x.IsActioned).Select(x => x.LockToken);
 
@@ -46,6 +50,7 @@ namespace ProqualIT.Azure.ServiceBus.Facade
 
                     if (lockTokens.Any())
                     {
+                        log.Info("Completing batch");
                         subscriptionClient.CompleteBatch(lockTokens);
                     }
                 }
@@ -59,22 +64,33 @@ namespace ProqualIT.Azure.ServiceBus.Facade
         protected virtual void StartProcessing<T>(SubscriptionClient subscriptionClient, Action<IEnumerable<T>> messagesReceived)
             where T : SubscriptionMessage
         {
+            log.Info("Starting processing");
+
             while (true)
             {
+                log.Info($"Waiting for message batch.  BatchSize = {this.BatchSize}");
                 var messages = subscriptionClient.ReceiveBatch(this.BatchSize);
-                this.ProcessMessages(subscriptionClient, messagesReceived, messages);
+
+                var brokeredMessages = messages as BrokeredMessage[] ?? messages.ToArray();
+
+                log.Info($"Received {brokeredMessages.Count()} messages");
+                this.ProcessMessages(subscriptionClient, messagesReceived, brokeredMessages);
             }
         }
 
         protected void InitialiseSubscription<T>(string subscriptionName, ISpecification filter, Action<IEnumerable<T>> messagesReceived) where T : SubscriptionMessage
         {
+            log.Info($"Initialising subscription.  Name={subscriptionName}, filter = {filter}");
             var subscriptionClient = this.subscriptionClientFactory.CreateAndGetSubscription(subscriptionName, filter);
+            log.Info("Subscription initialised.");
             Task.Run(() => this.StartProcessing(subscriptionClient, messagesReceived));
         }
 
         protected void InitialiseSubscription<T>(string subscriptionName, Type type, ISpecification filter, Action<IEnumerable<T>> messagesReceived) where T : SubscriptionMessage
         {
+            log.Info($"Initialising subscription.  Name={subscriptionName}, Type = {type}, filter = {filter}");
             var subscriptionClient = this.subscriptionClientFactory.CreateAndGetSubscription(subscriptionName, type, filter);
+            log.Info("Subscription initialised.");
             Task.Run(() => this.StartProcessing(subscriptionClient, messagesReceived));
         }
     }

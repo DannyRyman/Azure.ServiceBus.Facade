@@ -1,6 +1,5 @@
 ﻿using ProqualIT.Azure.ServiceBus.Facade.Logging;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -9,50 +8,55 @@ namespace ProqualIT.Azure.ServiceBus.Facade
 {
     public class Batcher<T>
     {
-        private readonly ILog _log;
+        private readonly ILog log;
 
-        private BufferBlock<T> _buffer;
+        private BufferBlock<T> buffer;
 
-        private ActionBlock<IEnumerable<T>> _actionBlock;
+        private ActionBlock<T[]> actionBlock;
 
         public Batcher(
-            Action<IEnumerable<T>> processBatch,
+            Action<T[]> processBatch,
             int batchSize,
             TimeSpan maxTimeWaitingForBatch)
         {
-            _log = LogProvider.For<Batcher<T>>();
+            log = LogProvider.For<Batcher<T>>();
             Initialize(batchSize, processBatch, maxTimeWaitingForBatch);
         }
 
         private void Initialize(int batchSize,
-            Action<IEnumerable<T>> processBatch,
+            Action<T[]> processBatch,
             TimeSpan maxTimeWaitingForBatch)
         {
-            _buffer = new BufferBlock<T>();
+            buffer = new BufferBlock<T>();
 
             var batchStockEvents = new BatchBlock<T>(batchSize);
 
             // Use a timer to make sure that items do not remain in memory for too long
-            var triggerBatchTimer = new Timer(delegate { batchStockEvents.TriggerBatch(); });
+            var triggerBatchTimer = new Timer(delegate
+            {
+                log.Info("Timer expired. Triggering batch.");
+                batchStockEvents.TriggerBatch();
+            });
 
             // Use a transform block to reset the timer whenever an item is inserted to avoid unnessary batches
             var timeoutBlock = new TransformBlock<T, T>((value) =>
             {
+                log.Info("Resetting timer");
                 triggerBatchTimer.Change(maxTimeWaitingForBatch, TimeSpan.FromMilliseconds(-1));
                 return value;
             });
 
-            _actionBlock = new ActionBlock<IEnumerable<T>>(processBatch);
+            actionBlock = new ActionBlock<T[]>(processBatch);
 
-            _buffer.LinkTo(timeoutBlock);
+            buffer.LinkTo(timeoutBlock);
             timeoutBlock.LinkTo(batchStockEvents);
-            batchStockEvents.LinkTo(_actionBlock);
+            batchStockEvents.LinkTo(actionBlock);
 
-            _actionBlock.Completion.ContinueWith(x =>
+            actionBlock.Completion.ContinueWith(x =>
             {
                 if (x.Exception != null)
                 {
-                    _log.ErrorException("Exiting batcher due to error.", x.Exception);
+                    log.ErrorException("Exiting batcher due to error.", x.Exception);
                 }
 
             }, TaskContinuationOptions.OnlyOnFaulted);
@@ -60,12 +64,12 @@ namespace ProqualIT.Azure.ServiceBus.Facade
 
         public void Post(T someObject)
         {
-            if (_actionBlock.Completion.IsCompleted)
+            if (actionBlock.Completion.IsCompleted)
             {
                 throw new InvalidOperationException("The batcher is not accepting new objects as it is in a failed state");
             }
 
-            _buffer.Post(someObject);
+            buffer.Post(someObject);
         }
     }
 }

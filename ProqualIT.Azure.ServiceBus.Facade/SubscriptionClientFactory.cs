@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
+using ProqualIT.Azure.ServiceBus.Facade.Logging;
 
 namespace ProqualIT.Azure.ServiceBus.Facade
 {
@@ -9,13 +10,15 @@ namespace ProqualIT.Azure.ServiceBus.Facade
         private readonly string topic;
         private readonly NamespaceManager namespaceManager;
         private readonly string connectionString;
+        private readonly ILog log;
 
         public SubscriptionClientFactory(string topic, 
             string connectionString)
         {
             this.topic = topic;
             this.connectionString = connectionString;
-            this.namespaceManager = NamespaceManager.CreateFromConnectionString(connectionString);
+            this.log = LogProvider.For<SubscriptionClientFactory>();
+            this.namespaceManager = NamespaceManager.CreateFromConnectionString(connectionString);            
         }
 
         public SubscriptionClient CreateAndGetSubscription(string subscriptionName, ISpecification customFilter = null)
@@ -68,29 +71,43 @@ namespace ProqualIT.Azure.ServiceBus.Facade
             var filter = new SqlFilter(filterSpecification.Result());
             EnsureSubscriptionNameIsValid(subscriptionName);
 
+            log.Info($"Checking subscription for path {subscriptionName} exists");
+
             if (!this.namespaceManager.SubscriptionExists(this.topic, subscriptionName))
             {
+                log.Info("Creating subscription as it does not currently exist");
+
                 var subscriptionDescription = new SubscriptionDescription(this.topic, subscriptionName)
                 {
                     LockDuration = TimeSpan.FromMinutes(5)
                 };
 
                 this.namespaceManager.CreateSubscription(subscriptionDescription, filter);
+
+                log.Info("Subscription created");
             }
+
+            log.Info("Creating subscription client");
 
             var client = SubscriptionClient.CreateFromConnectionString(
                 connectionString, this.topic, subscriptionName);
 
+            log.Info("Subscription client created");
+
             return client;
         }
 
-        private static void EnsureSubscriptionNameIsValid(string subscriptionFullName)
+        private void EnsureSubscriptionNameIsValid(string subscriptionFullName)
         {
+            log.Info("Validating subscription name");
+
             if (subscriptionFullName.Length > 50)
             {
                 throw new Exception("The entity path/name of subscription '" + subscriptionFullName +
                                     "' exceeds the 50 character limit.");
             }
+
+            log.Info("Subscription name is valid");
         }
     }
 }
