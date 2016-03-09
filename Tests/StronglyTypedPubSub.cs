@@ -9,6 +9,7 @@ namespace Tests
     [TestFixture]
     public class StronglyTypedPubSub
     {
+        [Ignore("Need to supply connection string")]
         [Test]
         public void CanSubscribeToPublishedEvent()
         {
