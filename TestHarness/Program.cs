@@ -8,7 +8,7 @@ namespace TestHarness
         static void Main(string[] args)
         {
             string connectionString =
-                "ConnectionStringGoesHere";
+                "Endpoint=sb://mporium-dev-insights.servicebus.windows.net/;SharedAccessKeyName=insights;SharedAccessKey=oSVZuPFS87HSOoe0GWO6979luQ6T+vZ7Pefu9bVK8Nk=";
 
             const string topicName = "shopify-notifications";
 
